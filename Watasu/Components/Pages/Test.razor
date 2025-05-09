@@ -1,66 +1,132 @@
 ﻿@page "/test"
+@using Watasu.Interfaces
+@using Watasu.Models
+@using Watasu.Service
+@inject IWebService WebService
+@inject ISnackbar Snackbar
+@inject ApplicationConfigurationSettings AppConfig
 
-<PageTitle>test</PageTitle>
+<PageTitle>Watasu | Test</PageTitle>
 
-<h1>Weather</h1>
+<div style="text-align: center; margin-top: 3rem;">
+    <h2>Upload file for transfer To Microsoft Paint</h2>
+    <p>This page is merely a test for debugging. Instead of pasting to CorelDraw it will attempt the operation with Microsoft Paint. Functionally, it is the same as the transfer page</p>
+    <p>Enter the debug key for exceptions and stack trace to be printed</p>
+</div>
 
-<p>This component demonstrates showing data.</p>
-
-@if (forecasts == null)
+@if (!string.IsNullOrEmpty(_imagePreviewUrl))
 {
-    <p>
-        <em>Loading...</em>
-    </p>
+    <div style="text-align: center; margin-bottom: 1rem; border-radius: 5px; overflow: hidden;">
+        <img src="@_imagePreviewUrl" alt="Preview" style="width: 80vw; max-width: 80%; max-height: 600px; border: 1px solid #ccc; border-radius: 5px;" />
+    </div>
 }
-else
+
+<MudForm>
+    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="2">
+        <MudText Typo="Typo.body1" Style="margin-left: 8px;">
+            @_files?.FirstOrDefault()?.Name
+        </MudText>
+        <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Style="width: 150px;">
+                    Upload File
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+
+        <MudTextField
+            @bind-Value="Passcode"
+            Label="Debug Passcode"
+            Style="text-align: center;"
+            LabelStyle="text-align: center;"
+            AutoGrow="true"
+            Variant="Variant.Text">
+        </MudTextField>
+
+        <MudButton
+            OnClick="SubmitForm"
+            Style="@(_files.Any() ? "margin-top: 16px; background-color: green; color: white; width: 150px;" : "margin-top: 16px; width: 150px;")"
+            Disabled="@(!_files.Any())"
+            Color="@(_files.Any() ? Color.Success : Color.Default)">
+            Transfer File
+        </MudButton>
+    </MudStack>
+</MudForm>
+
+@if (!string.IsNullOrEmpty(_errorMessage))
 {
-    <table class="table">
-        <thead>
-        <tr>
-            <th>Date</th>
-            <th>Temp. (C)</th>
-            <th>Temp. (F)</th>
-            <th>Summary</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var forecast in forecasts)
-        {
-            <tr>
-                <td>@forecast.Date.ToShortDateString()</td>
-                <td>@forecast.TemperatureC</td>
-                <td>@forecast.TemperatureF</td>
-                <td>@forecast.Summary</td>
-            </tr>
-        }
-        </tbody>
-    </table>
+    <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Error" Style="margin-top: 8px;">
+        @_errorMessage
+    </MudText>
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private readonly IList<IBrowserFile> _files = new List<IBrowserFile>();
+    private string? _imagePreviewUrl;
+    public required string Passcode { get; set; }
+    private string? _errorMessage;
 
-    protected override async Task OnInitializedAsync()
+    public async Task UploadFiles(IBrowserFile? file)
     {
-        // Simulate asynchronous loading to demonstrate a loading indicator
-        await Task.Delay(500);
-
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        if (file == null)
         {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
+            Snackbar.Add("No file was selected.", Severity.Warning);
+            return;
+        }
+        
+        _files.Clear();
+        _files.Add(file);
+        
+        // Validate file type before uploaded
+        if (!AppConfig.IsValidFileType(file.ContentType))
+        {
+            Snackbar.Add("Invalid file type. Only JPEG, JPG, PNG, and GIF are allowed", Severity.Warning);
+            _imagePreviewUrl = null;
+            _files.Clear();
+            return;
+        }
+        
+        if (file.ContentType.StartsWith("image/"))
+        {
+            try
+            {
+                using (var stream = file.OpenReadStream(maxAllowedSize: 20_000_000)) {
+                    using var ms = new MemoryStream();
+                    await stream.CopyToAsync(ms);
+                    var base64 = Convert.ToBase64String(ms.ToArray());
+                    _imagePreviewUrl = $"data:{file.ContentType};base64,{base64}";
+                }
+            }
+            catch (IOException ex)
+            {
+                Snackbar.Add($"Error reading file for preview: {ex.Message}", Severity.Error);
+            }
+        }
+        else
+        {
+            _imagePreviewUrl = null;
+        }
     }
 
-    private class WeatherForecast
+    public async Task SubmitForm()
     {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
+        var result = await  WebService.TransferFile(_files, Passcode, SendLocationEnum.MsPaint);
 
+        if (result.Success)
+        {
+            Snackbar.Add("File transferred successfully.", Severity.Success);
+            _errorMessage = null;
+
+        }
+        else
+        {
+            var errorMessage = $"{result.Error}";
+            if (!string.IsNullOrEmpty(result.StackTrace))
+            {
+                errorMessage += $". StackTrace: {result.StackTrace}";
+            }
+            Snackbar.Add(errorMessage, Severity.Error);
+            _errorMessage = errorMessage;
+        }
+    }
 }

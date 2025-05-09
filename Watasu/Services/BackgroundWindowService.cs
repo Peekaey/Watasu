@@ -49,7 +49,7 @@ public class BackgroundWindowService : IBackgroundWindowService
         } 
         catch (Exception ex)
         {
-            return ServiceResult.AsFailure($"Error converting file to clipboard: {ex.Message}");
+            return ServiceResult.AsFailure($"Error converting file to clipboard: {ex.Message}", ex.StackTrace);
         }
     }
 
@@ -103,8 +103,109 @@ public class BackgroundWindowService : IBackgroundWindowService
         } 
         catch (Exception ex)
         {
-            return ServiceResult.AsFailure($"Error pasting to Paint: {ex.Message}");
+            return ServiceResult.AsFailure($"Error pasting to Paint: {ex.Message}", ex.StackTrace);
         }
     }
     
+    public ServiceResult PasteToCorelDraw()
+    {
+        try
+        {
+            var allProcesses = Process.GetProcesses();
+            // Check if CorelDraw Essentials is running
+            var corelDrawProcess = allProcesses.FirstOrDefault(process => process.ProcessName.Contains("DrawEssentials"));
+
+            // Start the process if not found
+            if (corelDrawProcess == null)
+            {
+                corelDrawProcess = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "DrawEssentials.exe",
+                        UseShellExecute = true
+                    }
+                };
+                corelDrawProcess.Start();
+            }
+            
+            // Wait for process to be ready && give extra time for application to load
+            corelDrawProcess.WaitForInputIdle();
+            
+            for (var i = 0; i < 10; i++)
+            {
+                corelDrawProcess.Refresh();
+                if (corelDrawProcess.MainWindowHandle != IntPtr.Zero)
+                {
+                    break;
+                }
+
+                Thread.Sleep(200);
+            }
+            
+            // Switch to the application 
+            if (corelDrawProcess.MainWindowHandle != IntPtr.Zero)
+            {
+                ShowWindow(corelDrawProcess.MainWindowHandle, 9); // Restore if minimized
+                SetForegroundWindow(corelDrawProcess.MainWindowHandle);
+            }
+            
+            // Ctrl + V paste
+            SendKeys.SendWait("^v"); 
+            return ServiceResult.AsSuccess();
+            
+        } 
+        catch (Exception ex)
+        {
+            return ServiceResult.AsFailure($"Error pasting to CorelDraw: {ex.Message}", ex.StackTrace);
+        }
+    }
+
+    public async Task<ServiceResult> SaveFilesToFileSystem(IList<IBrowserFile> files, FileSystemSaveLocationEnum saveLocation)
+    {
+
+        var saveLocationFolder = string.Empty;
+        var errorMessage = new List<string>();
+        switch (saveLocation)
+        {
+            case FileSystemSaveLocationEnum.MyPictures:
+                saveLocationFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                break;
+            case FileSystemSaveLocationEnum.MyDocuments:
+                saveLocationFolder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(saveLocation), saveLocation, null);
+        }
+            
+        if (!Directory.Exists(saveLocationFolder))
+        {
+            throw new DirectoryNotFoundException($"Directory {saveLocationFolder} does not exist");
+        }
+            
+        foreach (var file in files)
+        {
+            try
+            {
+                var filePath = Path.Combine(saveLocationFolder, file.Name);
+
+                using (var stream = file.OpenReadStream(maxAllowedSize: 20_000_000))
+                {
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    { 
+                        await stream.CopyToAsync(fileStream);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMessage.Add("Unable to save file: " + file.Name + "Error: " + ex.Message);
+            }
+        }
+        if (errorMessage.Count > 0)
+        {
+            return ServiceResult.AsFailure(string.Join(Environment.NewLine, errorMessage), null);
+        }
+        return ServiceResult.AsSuccess();
+    }
 }

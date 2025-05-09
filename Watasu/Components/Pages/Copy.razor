@@ -1,19 +1,120 @@
 ﻿@page "/copy"
+@using Watasu.Interfaces
+@using Watasu.Models
+@using Watasu.Service
+@inject IWebService WebService
+@inject ISnackbar Snackbar
+@inject ApplicationConfigurationSettings AppConfig
 
-<PageTitle>Copy</PageTitle>
+<PageTitle>Watasu | Copy</PageTitle>
 
-<h1>Counter</h1>
+<div style="text-align: center; margin-top: 3rem;">
+    <h2>Upload files for System Transfer</h2>
+    <p> Upload files to be copied to either My Documents or My Pictures</p>
+</div>
 
-<p role="status">Current count: @currentCount</p>
+<MudForm>
+    <MudStack Direction="Row" AlignItems="AlignItems.Center" Spacing="2">
+        <MudText Typo="Typo.body1" Style="margin-left: 8px;">
+            @foreach (var file in _files)
+            {
+                <div>@file.Name</div>
+            }
+        </MudText>
+        <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" MaxAllowedFiles="5">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Style="width: 150px;">
+                    Upload Files
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+        <MudTextField
+            @bind-Value="Passcode"
+            Label="Passcode"
+            Style="text-align: center;"
+            LabelStyle="text-align: center;"
+
+            AutoGrow="true"
+            Variant="Variant.Text">
+        </MudTextField>
+
+        <MudRadioGroup @bind-Value="FileSystemSaveLocation">
+            <MudRadio Value="FileSystemSaveLocationEnum.MyPictures" Color="Color.Primary" Dense="true">My Pictures</MudRadio>
+            <MudRadio Value="FileSystemSaveLocationEnum.MyDocuments" Color="Color.Primary" Dense="false">My Documents</MudRadio>
+        </MudRadioGroup>
+
+        <MudButton
+            OnClick="SubmitForm"
+            Style="@(_files.Any() ? "margin-top: 16px; background-color: green; color: white; width: 150px;" : "margin-top: 16px; width: 150px;")"
+            Disabled="@(!_files.Any())"
+            Color="@(_files.Any() ? Color.Success : Color.Default)">
+            Transfer File
+        </MudButton>
+    </MudStack>
+</MudForm>
 
 @code {
-    private int currentCount = 0;
+    private readonly IList<IBrowserFile> _files = new List<IBrowserFile>();
+    public required string Passcode { get; set; }
+    public FileSystemSaveLocationEnum FileSystemSaveLocation { get; set; } = FileSystemSaveLocationEnum.MyPictures;
 
-    private void IncrementCount()
+    public Task UploadFiles(IReadOnlyList<IBrowserFile>? files)
     {
-        currentCount++;
+        _files.Clear();
+        var snackbarMessages = new List<string>();
+        var validFiles = new List<IBrowserFile>();
+        var invalidFiles = new List<IBrowserFile>();
+        
+        if (files == null || !files.Any())
+        {
+            Snackbar.Add("No file was selected.", Severity.Warning);
+            return Task.CompletedTask;
+        }
+
+        files = files.ToList();
+        
+        foreach (var file in files)
+        {
+            if (!AppConfig.IsValidFileType(file.ContentType))
+            {
+                snackbarMessages.Add($"Invalid file type: {file.Name}. Only JPEG, JPG, PNG, and GIF are allowed.");
+                invalidFiles.Add(file);
+            } else if (file.Size > 20_000_000)
+            {
+                snackbarMessages.Add($"File size exceeds the limit of 20MB: {file.Name}");
+                invalidFiles.Add(file);
+            }
+            else
+            {
+                validFiles.Add(file);
+            }
+        }
+        
+        if (invalidFiles.Any())
+        {
+            Snackbar.Add(string.Join(", ", snackbarMessages), Severity.Warning);
+            _files.Clear();
+        }
+        foreach (var validFile in validFiles)
+        {
+            _files.Add(validFile);
+        }
+
+        return Task.CompletedTask;
     }
 
+    public async Task SubmitForm()
+    {
+        var result = await  WebService.CopyFilesToFileSystem(_files,Passcode, FileSystemSaveLocation);
+
+        if (result.Success)
+        {
+            Snackbar.Add("File transferred successfully.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add($"Error: {result.Error}", Severity.Error);
+        }
+    }
 }

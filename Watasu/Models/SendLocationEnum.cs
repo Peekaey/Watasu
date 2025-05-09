@@ -1,7 +1,7 @@
 ﻿namespace Watasu.Models;
 
-public enum SendLocation
+public enum SendLocationEnum
 {
-    MSPaint = 0,
+    MsPaint = 0,
     CorelDraw = 1
 }
