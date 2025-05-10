@@ -43,9 +43,6 @@ public class Program
 
     private static void ConfigureWebHost(ConfigureWebHostBuilder webhostBuilder)
     {
-        var x509 = new X509Certificate2("folderpathtocert", "blazor");
-        
-        
         webhostBuilder.UseKestrel(options =>
         {
             options.ListenAnyIP(5000); // HTTP
@@ -63,7 +60,7 @@ public class Program
             webApplication.UseHsts();
         }
         
-        webApplication.UseHttpsRedirection();
+        // webApplication.UseHttpsRedirection();
 
         webApplication.UseStaticFiles();
         webApplication.UseAntiforgery();

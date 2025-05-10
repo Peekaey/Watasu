@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Components.Forms;
 using Watasu.Interfaces;
@@ -13,6 +13,9 @@ public class BackgroundWindowService : IBackgroundWindowService
     
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    
+    [DllImport("ole32.dll")]
+    private static extern int OleFlushClipboard();
     
     public async Task<ServiceResult> ConvertBrowserFileToClipboard(IBrowserFile browserFile)
     {
@@ -33,7 +36,9 @@ public class BackgroundWindowService : IBackgroundWindowService
                         {
                             using (var image = Image.FromStream(imageStream))
                             {
-                                Clipboard.SetImage(image);
+                                var bitmap = new Bitmap(image);
+                                Clipboard.SetImage(bitmap);
+                                OleFlushClipboard();
                             }
                         }
                     });
@@ -151,7 +156,7 @@ public class BackgroundWindowService : IBackgroundWindowService
             }
             
             // Ctrl + V paste
-            SendKeys.SendWait("^v"); 
+            SendKeys.SendWait("%esb{ENTER}");
             return ServiceResult.AsSuccess();
             
         } 
