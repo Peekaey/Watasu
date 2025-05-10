@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Components.Forms;
 using Watasu.Interfaces;
@@ -37,8 +38,24 @@ public class BackgroundWindowService : IBackgroundWindowService
                             using (var image = Image.FromStream(imageStream))
                             {
                                 var bitmap = new Bitmap(image);
-                                Clipboard.SetImage(bitmap);
-                                OleFlushClipboard();
+
+                                using (var bmpStream = new MemoryStream())
+                                {
+                                    // W10/W11 Support
+                                    bitmap.Save(bmpStream, ImageFormat.Bmp);
+                                    var bmpBytes = bmpStream.ToArray();
+                                    
+                                    var dibBytes = bmpBytes.Skip(14).ToArray();
+                                    var data = new DataObject();
+                                    data.SetData(DataFormats.Dib, new MemoryStream(dibBytes));
+                                    Clipboard.SetDataObject(data, true);
+                                    OleFlushClipboard();
+                                }
+                                
+                                // Wiin 11 Only
+                                // Clipboard.SetImage(bitmap);
+                                // OleFlushClipboard();
+                                
                             }
                         }
                     });
