@@ -1,5 +1,5 @@
 
-# Simple web-to-desktop file ingestion tool.
+# Simple web-to-desktop file ingestion web server.
 
 Simplifies the process of transferring files from one device to another via simple web interface
 
