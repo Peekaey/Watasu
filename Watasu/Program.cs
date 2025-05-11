@@ -11,6 +11,7 @@ namespace Watasu;
 
 public class Program
 {
+    [STAThread]
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -25,18 +26,17 @@ public class Program
     {
         services.AddRazorComponents().AddInteractiveServerComponents();
         
-        services.AddSingleton<ApplicationConfigurationSettings>(options => 
-            {
-                // Configure passwords as required
-                var applicationConfiguration = new ApplicationConfigurationSettings();
-                applicationConfiguration.UploadPassword = "12345";
-                applicationConfiguration.DebugKey = "54321";
-                return applicationConfiguration;
-            });
+        services.AddSingleton<ApplicationConfigurationSettings>(options => new ApplicationConfigurationSettings
+        {
+            UploadPassword = "12345",
+            DebugKey = "54321"
+        });
         services.AddSingleton<IWebService, WebService>();
         services.AddSingleton<IValidationService, ValidationService>();
         services.AddSingleton<IBackgroundWindowService, BackgroundWindowService>();
-
+        
+        services.AddMemoryCache();
+        services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddMudServices();
         services.AddServerSideBlazor().AddCircuitOptions(options => { options.DetailedErrors = true; });
     }

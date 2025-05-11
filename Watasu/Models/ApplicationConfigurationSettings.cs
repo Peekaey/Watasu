@@ -2,9 +2,9 @@
 
 public class ApplicationConfigurationSettings
 {
-    public string UploadPassword { get; set; }
-    public string DebugKey { get; set; }
-    private readonly Dictionary<string, string> ValidFileTypes = new()
+    public required string UploadPassword { get; set; }
+    public required string DebugKey { get; set; }
+    private readonly Dictionary<string, string> _validFileTypes = new()
     {
         { "image/jpg", ".jpg" },
         { "image/jpeg", ".jpeg" },
@@ -14,12 +14,12 @@ public class ApplicationConfigurationSettings
 
     public bool IsValidFileType(string contentType)
     {
-        return ValidFileTypes.ContainsKey(contentType);   
+        return _validFileTypes.ContainsKey(contentType);   
     }
     
     public string? GetFileExtension(string contentType)
     {
-        return ValidFileTypes[contentType];
+        return _validFileTypes[contentType];
     }
     
     
