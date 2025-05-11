@@ -23,6 +23,8 @@ Utilises Blazor Server as the web server and for access to Windows API
 2. Compile with ```dotnet publish -c Release -r win-x64 --self-contained true```
 3. Execute .exe file to launch server
 
+![CorelDrawPage](https://github.com/Peekaey/Watasu/blob/master/Images/Corel.png?raw=true)
+![UploadPage](https://github.com/Peekaey/Watasu/blob/master/Images/Upload.png?raw=true)
 
 ## Compatability
 - Windows only (10/11)
