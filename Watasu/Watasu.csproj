@@ -9,7 +9,10 @@
         <DebugSymbols>true</DebugSymbols>
         <RuntimeIdentifier>win-x64</RuntimeIdentifier>
         <SelfContained>true</SelfContained>
-        <PublishSingleFile>true</PublishSingleFile>
+        
+        <!--Disable when not publishing as it causes lovely Cryptic Windows Error to break Jetbrains Debugger-->
+        <!--https://stackoverflow.com/questions/78611662/rider-on-windows-debugger-clr-load-callback-is-already-in-error-state-e-fail-->
+        <!--<PublishSingleFile>true</PublishSingleFile>-->
         
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
