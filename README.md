@@ -6,6 +6,7 @@ Simplifies the process of transferring files from one device to another via simp
 Tailored & minimal tool that aims to solve some very specific problems within a LAN environment:
   - Copying of files directly from a mobile device into CorelDraw desktop application
   - Transferring of files from a mobile device into desktop file system
+  - Provide the functionality in the most simpliest way possible
 
 Otherwise, there are better dedicated file transfer tools available.
 
