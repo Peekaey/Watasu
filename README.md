@@ -1,11 +1,12 @@
 
-# Basic web-to-desktop file ingestion tool.
+# Simple web-to-desktop file ingestion web server.
 
 Simplifies the process of transferring files from one device to another via simple web interface
 
 Tailored & minimal tool that aims to solve some very specific problems within a LAN environment:
   - Copying of files directly from a mobile device into CorelDraw desktop application
   - Transferring of files from a mobile device into desktop file system
+  - Provide the functionality in the most simpliest way possible
 
 Otherwise, there are better dedicated file transfer tools available.
 
@@ -23,6 +24,8 @@ Utilises Blazor Server as the web server and for access to Windows API
 2. Compile with ```dotnet publish -c Release -r win-x64 --self-contained true```
 3. Execute .exe file to launch server
 
+![CorelDrawPage](https://github.com/Peekaey/Watasu/blob/master/Images/Corel.png?raw=true)
+![UploadPage](https://github.com/Peekaey/Watasu/blob/master/Images/Upload.png?raw=true)
 
 ## Compatability
 - Windows only (10/11)
