@@ -17,7 +17,7 @@ Otherwise, there are better dedicated file transfer tools available.
 - File type validation
 - Supports HTTP/HTTPS through Kestrel server
 
-Utilises Blazor Server as the web server and for access to Windows API
+Utilises Blazor Server with kestrel as the web server and for access to Windows API
 
 ## How to use
 1. Ensure that appropriate password has been set within the ConfigureServices() ApplicationConfigurationSettings initialisation in Program.cs
